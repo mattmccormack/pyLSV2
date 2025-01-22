@@ -460,8 +460,18 @@ class LSV2:
             result = self._send_recive(lc.CMD.R_VR, struct.pack("!B", lc.ParRVR.CONTROL), lc.RSP.S_VR)
             if isinstance(result, (bytearray,)) and len(result) > 0:
                 info_data.control = lm.ba_to_ustr(result)
-            else:
-                raise LSV2DataException("Could not read version information from control")
+            else:                
+                # might be an old version of LSV2 which doesn't use version indexing
+                result = self._send_recive(lc.CMD.R_VR, None, lc.RSP.S_VR)
+                if isinstance(result, (bytearray,)) and len(result) > 0:
+                    version_data = result.split(b"\x00")
+                    info_data.control = version_data[0].decode()
+                    info_data.nc_sw = version_data[1]
+                    info_data.plc = version_data[2]
+                    info_data.option_bits = version_data[3]
+                    info_data.id_number = version_data[4]
+                else:
+                    raise LSV2DataException("Could not read version information from control")
 
             result = self._send_recive(
                 lc.CMD.R_VR,
